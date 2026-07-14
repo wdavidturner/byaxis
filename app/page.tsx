@@ -26,7 +26,10 @@ type MapState = {
   items: Item[];
 };
 
-const COLORS = ["#F06449", "#3E63DD", "#B6D63A", "#F2C94C", "#9B6BD3", "#2D9C7A"];
+const COLORS = [
+  "#F06449", "#FF8A5B", "#F6C344", "#E9E15B", "#B6D63A", "#69C36D", "#2D9C7A", "#45B7B7", "#4BA3F2", "#3E63DD",
+  "#6957D9", "#9B6BD3", "#D66BC2", "#EF6A9A", "#C44D56", "#9A6B4F", "#80756B", "#C8C2B8", "#F7F3EA", "#171713",
+];
 const FONT_PACKS = [
   { id: "modernist", label: "Modernist", detail: "Space Grotesk + Inter" },
   { id: "editorial", label: "Editorial", detail: "Source Serif 4 + DM Sans" },
@@ -49,10 +52,10 @@ const DEMO_STATE: MapState = {
   fontPack: "modernist",
   items: [
     { id: "demo-1", x: 22, y: 24, size: 72, label: "Northstar", color: COLORS[0], initials: "N", z: 1 },
-    { id: "demo-2", x: 66, y: 20, size: 80, label: "Arc", color: COLORS[1], initials: "A", z: 2 },
-    { id: "demo-3", x: 79, y: 43, size: 68, label: "Bloom", color: COLORS[2], initials: "B", z: 3 },
-    { id: "demo-4", x: 35, y: 62, size: 76, label: "Relay", color: COLORS[3], initials: "R", z: 4 },
-    { id: "demo-5", x: 59, y: 76, size: 70, label: "Mosaic", color: COLORS[4], initials: "M", z: 5 },
+    { id: "demo-2", x: 66, y: 20, size: 80, label: "Arc", color: COLORS[9], initials: "A", z: 2 },
+    { id: "demo-3", x: 79, y: 43, size: 68, label: "Bloom", color: COLORS[4], initials: "B", z: 3 },
+    { id: "demo-4", x: 35, y: 62, size: 76, label: "Relay", color: COLORS[2], initials: "R", z: 4 },
+    { id: "demo-5", x: 59, y: 76, size: 70, label: "Mosaic", color: COLORS[11], initials: "M", z: 5 },
   ],
 };
 
@@ -119,8 +122,13 @@ export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saved, setSaved] = useState(true);
   const [mobilePanel, setMobilePanel] = useState(false);
+  const [itemModalOpen, setItemModalOpen] = useState(false);
+  const [draftName, setDraftName] = useState("");
+  const [draftColor, setDraftColor] = useState(COLORS[0]);
+  const [draftSrc, setDraftSrc] = useState<string | undefined>();
+  const [fileDragActive, setFileDragActive] = useState(false);
   const boardRef = useRef<HTMLDivElement>(null);
-  const uploadRef = useRef<HTMLInputElement>(null);
+  const itemFileRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
 
   useEffect(() => {
@@ -138,6 +146,15 @@ export default function Home() {
       window.clearTimeout(timeout);
     };
   }, [map, ready]);
+
+  useEffect(() => {
+    if (!itemModalOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setItemModalOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [itemModalOpen]);
 
   const selected = useMemo(() => map.items.find((item) => item.id === selectedId) ?? null, [map.items, selectedId]);
   const layeredItems = useMemo(() => [...map.items].sort((a, b) => b.z - a.z), [map.items]);
@@ -164,32 +181,48 @@ export default function Home() {
     });
   }, []);
 
-  const addFiles = async (incoming: File[]) => {
-    const files = incoming.filter((file) => file.type.startsWith("image/"));
-    const topLayer = Math.max(0, ...map.items.map((item) => item.z));
-    const additions = await Promise.all(files.map(async (file, index): Promise<Item> => {
-      const label = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
-      return {
-        id: crypto.randomUUID(),
-        x: 35 + ((map.items.length + index) * 11) % 35,
-        y: 34 + ((map.items.length + index) * 13) % 34,
-        size: 76,
-        label,
-        src: await fileToDataUrl(file),
-        color: COLORS[(map.items.length + index) % COLORS.length],
-        initials: label.slice(0, 2).toUpperCase(),
-        z: topLayer + index + 1,
-      };
-    }));
-    if (additions.length) {
-      setMap((current) => ({ ...current, items: [...current.items, ...additions] }));
-      setSelectedId(additions.at(-1)?.id ?? null);
-    }
+  const openItemModal = () => {
+    setDraftName("");
+    setDraftColor(COLORS[map.items.length % COLORS.length]);
+    setDraftSrc(undefined);
+    setFileDragActive(false);
+    setItemModalOpen(true);
   };
 
-  const handleFiles = async (event: ChangeEvent<HTMLInputElement>) => {
-    await addFiles(Array.from(event.target.files ?? []));
+  const prepareItemFile = async (file?: File) => {
+    if (!file?.type.startsWith("image/")) return;
+    setDraftSrc(await fileToDataUrl(file));
+    if (!draftName.trim()) setDraftName(file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "));
+  };
+
+  const handleItemFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    await prepareItemFile(event.target.files?.[0]);
     event.target.value = "";
+  };
+
+  const createItem = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const label = draftName.trim();
+    if (!label) return;
+    const id = crypto.randomUUID();
+    setMap((current) => {
+      const index = current.items.length;
+      const topLayer = Math.max(0, ...current.items.map((item) => item.z));
+      const item: Item = {
+        id,
+        x: 35 + (index * 11) % 35,
+        y: 34 + (index * 13) % 34,
+        size: 76,
+        label,
+        src: draftSrc,
+        color: draftColor,
+        initials: label.slice(0, 2).toUpperCase(),
+        z: topLayer + 1,
+      };
+      return { ...current, items: [...current.items, item] };
+    });
+    setSelectedId(id);
+    setItemModalOpen(false);
   };
 
   const pointerDown = (event: ReactPointerEvent<HTMLButtonElement>, item: Item) => {
@@ -293,7 +326,7 @@ export default function Home() {
           ctx.drawImage(image, cx - w / 2, cy - h / 2, w, h);
         } catch {}
       } else {
-        ctx.fillStyle = "#171713";
+        ctx.fillStyle = item.color === "#171713" ? "#F4F0E8" : "#171713";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.font = `800 ${size * .36}px ${displayFont}`;
@@ -336,16 +369,15 @@ export default function Home() {
         <a className="brand" href="#canvas" aria-label="Quadrants home">quadrants<span>.</span></a>
         <div className="save-status" aria-live="polite"><i className={saved ? "saved" : "saving"} />{saved ? "Saved on this device" : "Saving…"}</div>
         <div className="top-actions">
-          <button className="button secondary" onClick={() => uploadRef.current?.click()}><span>＋</span> Add images</button>
+          <button className="button secondary" onClick={openItemModal}><span>＋</span> Add item</button>
           <button className="button primary" onClick={exportPng}>Export PNG <span>↗</span></button>
           <button className="mobile-tools" onClick={() => setMobilePanel((value) => !value)} aria-label="Toggle editing tools">☰</button>
         </div>
       </header>
 
-      <input ref={uploadRef} className="visually-hidden" type="file" accept="image/*" multiple onChange={handleFiles} />
-
       <div className="workspace">
         <aside className={`sidebar ${mobilePanel ? "open" : ""}`} aria-label="Map controls">
+          <button className="sidebar-add-item" onClick={() => { setMobilePanel(false); openItemModal(); }}>＋ Add item</button>
           <section>
             <p className="eyebrow">Map details</p>
             <label>Title<input value={map.title} onChange={(event) => patchMap("title", event.target.value)} /></label>
@@ -398,15 +430,15 @@ export default function Home() {
                 <button onClick={() => setLayerPosition(selected.id, map.items.length)} title="Bring to front">⇥</button>
               </div>
               <button className="text-button danger" onClick={removeSelected}>Remove item</button>
-            </> : <p className="hint">Select an image on the map to edit it.</p>}
+            </> : <p className="hint">Select an item on the map to edit it.</p>}
           </section>
 
           <section>
-            <p className="eyebrow">Layers <span>Front to back</span></p>
+            <p className="eyebrow">Items <span>Front to back</span></p>
             <div className="layers-list">
               {layeredItems.map((item) => (
                 <button className={`layer-row ${item.id === selectedId ? "selected" : ""}`} key={item.id} onClick={() => setSelectedId(item.id)}>
-                  <span className="layer-thumb" style={{ background: item.color }}>
+                  <span className="layer-thumb" style={{ background: item.color, color: item.color === "#171713" ? "#F4F0E8" : "#171713" }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {item.src ? <img src={item.src} alt="" /> : item.initials}
                   </span>
@@ -433,12 +465,7 @@ export default function Home() {
             <span className="axis-label axis-bottom">{map.yBottom}</span>
             <span className="axis-label axis-left">{map.xLeft}</span>
             <span className="axis-label axis-right">{map.xRight}</span>
-            <div
-              className="board"
-              ref={boardRef}
-              onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) event.preventDefault(); }}
-              onDrop={(event) => { event.preventDefault(); void addFiles(Array.from(event.dataTransfer.files)); }}
-            >
+            <div className="board" ref={boardRef}>
               <div className="axis axis-x" /><div className="axis axis-y" />
               {map.quadrants.map((label, index) => <span className={`quadrant-label q${index + 1}`} key={index}>{label}</span>)}
               {map.items.map((item) => (
@@ -453,7 +480,7 @@ export default function Home() {
                   onKeyDown={(event) => handleKey(event, item)}
                   aria-label={`${item.label}, draggable map item`}
                 >
-                  <span className="item-visual" style={{ background: item.color }}>
+                  <span className="item-visual" style={{ background: item.color, color: item.color === "#171713" ? "#F4F0E8" : "#171713" }}>
                     {/* User-provided data URLs must render directly and never reach an image server. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {item.src ? <img src={item.src} alt="" draggable={false} /> : <b>{item.initials}</b>}
@@ -461,12 +488,63 @@ export default function Home() {
                   <span className="item-label">{item.label}</span>
                 </button>
               ))}
-              {!map.items.length && <button className="empty-state" onClick={(event) => { event.stopPropagation(); uploadRef.current?.click(); }}><span>＋</span><strong>Add your first images</strong><small>PNG, JPG, GIF or WebP</small></button>}
+              {!map.items.length && <button className="empty-state" onClick={(event) => { event.stopPropagation(); openItemModal(); }}><span>＋</span><strong>Add your first item</strong><small>Use a color or your own image</small></button>}
             </div>
           </div>
           <footer><span>quadrants.io</span><span>{map.items.length} item{map.items.length === 1 ? "" : "s"} · stored locally</span></footer>
         </section>
       </div>
+
+      {itemModalOpen && (
+        <div className="modal-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target) setItemModalOpen(false); }}>
+          <form className="item-modal" role="dialog" aria-modal="true" aria-labelledby="add-item-title" onSubmit={createItem}>
+            <div className="modal-heading">
+              <div><p className="eyebrow">New item</p><h2 id="add-item-title">Add an item</h2></div>
+              <button type="button" className="modal-close" onClick={() => setItemModalOpen(false)} aria-label="Close">×</button>
+            </div>
+
+            <label>Item name<input autoFocus value={draftName} onChange={(event) => setDraftName(event.target.value)} placeholder="e.g. Northstar" /></label>
+
+            <div className="modal-section">
+              <p className="modal-label">Image <span>Optional</span></p>
+              <input ref={itemFileRef} className="visually-hidden" type="file" accept="image/*" onChange={handleItemFile} />
+              <button
+                type="button"
+                className={`image-dropzone ${fileDragActive ? "dragging" : ""}`}
+                onClick={() => itemFileRef.current?.click()}
+                onDragEnter={(event) => { event.preventDefault(); setFileDragActive(true); }}
+                onDragOver={(event) => event.preventDefault()}
+                onDragLeave={() => setFileDragActive(false)}
+                onDrop={(event) => { event.preventDefault(); setFileDragActive(false); void prepareItemFile(event.dataTransfer.files[0]); }}
+              >
+                {draftSrc ? <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={draftSrc} alt="Selected item preview" /><span><strong>Image added</strong><small>Drop or click to replace</small></span>
+                </> : <><b>↥</b><span><strong>Drop an image here</strong><small>or click to browse</small></span></>}
+              </button>
+              {draftSrc && <button type="button" className="remove-image" onClick={() => setDraftSrc(undefined)}>Remove image</button>}
+            </div>
+
+            <div className="modal-section">
+              <p className="modal-label">Color</p>
+              <div className="color-palette" role="radiogroup" aria-label="Item color">
+                {COLORS.map((color) => <button type="button" role="radio" aria-checked={draftColor === color} aria-label={color} className={draftColor === color ? "selected" : ""} style={{ background: color }} onClick={() => setDraftColor(color)} key={color} />)}
+              </div>
+            </div>
+
+            <div className="item-preview-row">
+              <span>Preview</span>
+              <span className="draft-item-preview" style={{ background: draftColor, color: draftColor === "#171713" ? "#F4F0E8" : "#171713" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {draftSrc ? <img src={draftSrc} alt="" /> : (draftName.trim().slice(0, 2).toUpperCase() || "Aa")}
+              </span>
+              <strong>{draftName.trim() || "Untitled item"}</strong>
+            </div>
+
+            <div className="modal-actions"><button type="button" className="button secondary" onClick={() => setItemModalOpen(false)}>Cancel</button><button className="button primary" disabled={!draftName.trim()}>Add item</button></div>
+          </form>
+        </div>
+      )}
     </main>
   );
 }

@@ -23,11 +23,11 @@ test("server-renders the Quadrants product", async () => {
   assert.match(html, /<title>Quadrants — Map ideas visually<\/title>/i);
   assert.match(html, /quadrants<span>\.<\/span>/i);
   assert.match(html, /Saved on this device/);
-  assert.match(html, /Add images/);
+  assert.match(html, /Add item/);
   assert.match(html, /Export PNG/);
   assert.match(html, /Font package/);
   assert.match(html, /Modernist/);
-  assert.match(html, /Layers/);
+  assert.match(html, /Items/);
   assert.match(html, /Front to back/);
   assert.match(html, /Private by design/);
   assert.match(html, /Your map and images stay in this browser/);
@@ -46,6 +46,11 @@ test("keeps storage and export entirely in the browser", async () => {
   assert.match(page, /canvas\.toDataURL\("image\/png"\)/);
   assert.match(page, /onPointerDown/);
   assert.match(page, /onDrop/);
+  assert.match(page, /Add an item/);
+  assert.match(page, /color-palette/);
+  assert.match(page, /COLORS\.map/);
+  assert.match(page, /Drop an image here/);
+  assert.doesNotMatch(page, /Add images|Add your first images/);
   assert.match(page, /setLayerPosition/);
   assert.match(page, /zIndex: item\.z/);
   assert.match(page, /document\.fonts\.ready/);
