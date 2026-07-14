@@ -1,98 +1,62 @@
-# vinext-starter
+# Byaxis
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+![Byaxis social preview](public/og.png)
 
-## Prerequisites
+Byaxis is a private, browser-only tool for making visual quadrant maps. Place color or image-backed items on a two-axis field, tune their overlap order, choose a font treatment, and export a PNG.
 
-- Node.js `>=22.13.0`
+There is no account, backend, upload service, or server-side storage. Your map and any images you add stay in your browser's IndexedDB.
 
-## Quick Start
+## What it does
+
+- Build a map with editable title, axis, and quadrant labels.
+- Add named items using a 20-color palette or a dropped image.
+- Drag, resize, select, and reorder items from back to front.
+- Switch between four bundled Google Font pairings.
+- Persist work locally and export a polished PNG.
+- Work completely client-side after the app has loaded.
+
+## Run it locally
+
+Requires Node.js 22.13 or newer.
 
 ```bash
 npm install
 npm run dev
-npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+Open the local URL printed by the dev server.
 
-## Included Shape
+## Verify it
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```bash
+npm run lint
+npm test
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+`npm test` builds the production worker, verifies the rendered product shell and its browser-only guarantees, then exercises the pure item-layer logic.
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+## Project map
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+- `app/page.tsx` — the editor, IndexedDB persistence, and PNG export.
+- `app/layout.tsx` — metadata and local Google Font packages.
+- `lib/layers.js` — deterministic item layer normalization and reordering.
+- `tests/` — rendered-app and layer-behavior tests.
+- `BLUEPRINT.md` — a copyable prompt for building and adapting a similar tool.
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
+## Privacy model
 
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
+Images are read into browser memory as data URLs and saved only in that browser's IndexedDB. Byaxis does not use API routes, forms, analytics, remote uploads, or a database. The Google fonts are bundled at build time by Next.js, so the application does not need to call Google Fonts at runtime.
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
+Clearing site data in your browser clears your saved map. Exported PNGs are created locally with the Canvas API.
 
-## Useful Commands
+## Deployment
 
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+This project builds as a Vinext app with a Cloudflare Worker entry point, but it has no runtime bindings or data services. Any host that supports the resulting Worker bundle can serve it. The included `.openai/hosting.json` is deliberately generic: configure a hosting project locally rather than committing a project ID.
 
-## Learn More
+## Make your own
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+Want the same privacy-first editing model with your own visual language? Start with [BLUEPRINT.md](BLUEPRINT.md), paste it into a coding agent, and replace the bracketed choices before building.
+
+## License
+
+[MIT](LICENSE)

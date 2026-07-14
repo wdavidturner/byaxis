@@ -48,7 +48,7 @@ input:focus, select:focus { border-color: var(--ink); background: rgba(255,255,2
 .font-sample b { font-family: var(--font-display); font-size: 29px; line-height: 1; }
 .font-sample span { font-family: var(--font-body); color: var(--muted); font-size: 10px; line-height: 1.25; }
 .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 8px; }
-.quadrants-fields input { font-size: 11px; }
+.quadrant-fields input { font-size: 11px; }
 .item-editor { min-height: 120px; }
 .item-editor label:has(output) { grid-template-columns: 1fr auto; }
 .item-editor output { color: var(--ink); font-family: var(--font-geist-mono), monospace; }

@@ -14,14 +14,14 @@ async function render() {
   );
 }
 
-test("server-renders the Quadrants product", async () => {
+test("server-renders the Byaxis product", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>Quadrants — Map ideas visually<\/title>/i);
-  assert.match(html, /quadrants<span>\.<\/span>/i);
+  assert.match(html, /<title>Byaxis — Map ideas visually<\/title>/i);
+  assert.match(html, /byaxis<span>\.<\/span>/i);
   assert.match(html, /Saved on this device/);
   assert.match(html, /Add item/);
   assert.match(html, /Export PNG/);
@@ -51,11 +51,10 @@ test("keeps storage and export entirely in the browser", async () => {
   assert.match(page, /COLORS\.map/);
   assert.match(page, /Drop an image here/);
   assert.doesNotMatch(page, /Add images|Add your first images/);
-  assert.match(page, /setLayerPosition/);
+  assert.match(page, /moveItemToLayer/);
   assert.match(page, /zIndex: item\.z/);
   assert.match(page, /document\.fonts\.ready/);
   assert.doesNotMatch(page, /fetch\(|XMLHttpRequest|FormData/);
-  assert.match(layout, /https:\/\/quadrants\.io/);
   assert.match(layout, /\/og\.png/);
   assert.match(layout, /Space_Grotesk/);
   assert.match(layout, /Source_Serif_4/);

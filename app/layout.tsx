@@ -15,17 +15,16 @@ const ibmPlexMono = IBM_Plex_Mono({ variable: "--font-ibm-plex-mono", subsets: [
 const fontVariables = [geistSans, geistMono, inter, spaceGrotesk, dmSans, sourceSerif, manrope, nunitoSans, ibmPlexSans, ibmPlexMono].map((font) => font.variable).join(" ");
 
 export const metadata: Metadata = {
-  title: "Quadrants — Map ideas visually",
+  title: "Byaxis — Map ideas visually",
   description: "A private, browser-based tool for making beautiful quadrant maps. Drag, arrange, and export—no account required.",
-  metadataBase: new URL("https://quadrants.io"),
   openGraph: {
-    title: "Quadrants — Map ideas visually",
+    title: "Byaxis — Map ideas visually",
     description: "Place ideas. See the field.",
-    siteName: "Quadrants",
+    siteName: "Byaxis",
     type: "website",
     images: ["/og.png"],
   },
-  twitter: { card: "summary_large_image", title: "Quadrants — Map ideas visually", description: "Place ideas. See the field.", images: ["/og.png"] },
+  twitter: { card: "summary_large_image", title: "Byaxis — Map ideas visually", description: "Place ideas. See the field.", images: ["/og.png"] },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

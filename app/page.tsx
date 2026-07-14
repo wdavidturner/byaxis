@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { moveItemToLayer, normalizeLayers } from "../lib/layers.js";
 
 type Item = {
   id: string;
@@ -37,10 +38,6 @@ const FONT_PACKS = [
   { id: "technical", label: "Technical", detail: "IBM Plex Sans + IBM Plex Mono" },
 ];
 
-const normalizeLayers = (items: Item[]) => [...items]
-  .sort((a, b) => (a.z ?? 0) - (b.z ?? 0))
-  .map((item, index) => ({ ...item, z: index + 1 }));
-
 const DEMO_STATE: MapState = {
   title: "The AI landscape",
   subtitle: "A point-in-time view · July 2026",
@@ -59,7 +56,7 @@ const DEMO_STATE: MapState = {
   ],
 };
 
-const DB_NAME = "quadrants-local";
+const DB_NAME = "byaxis-local";
 const STORE_NAME = "maps";
 
 function openDb(): Promise<IDBDatabase> {
@@ -170,15 +167,7 @@ export default function Home() {
   }, []);
 
   const setLayerPosition = useCallback((id: string, requestedPosition: number) => {
-    setMap((current) => {
-      const ordered = [...current.items].sort((a, b) => a.z - b.z);
-      const currentIndex = ordered.findIndex((item) => item.id === id);
-      if (currentIndex < 0) return current;
-      const [moving] = ordered.splice(currentIndex, 1);
-      const targetIndex = Math.max(0, Math.min(ordered.length, requestedPosition - 1));
-      ordered.splice(targetIndex, 0, moving);
-      return { ...current, items: ordered.map((item, index) => ({ ...item, z: index + 1 })) };
-    });
+    setMap((current) => ({ ...current, items: moveItemToLayer(current.items, id, requestedPosition) }));
   }, []);
 
   const openItemModal = () => {
@@ -342,7 +331,7 @@ export default function Home() {
     ctx.fillStyle = "rgba(23,23,19,.45)";
     ctx.textAlign = "right";
     ctx.font = `700 18px ${bodyFont}`;
-    ctx.fillText("quadrants.io", 1496, 1150);
+    ctx.fillText("byaxis", 1496, 1150);
     const link = document.createElement("a");
     link.download = `${map.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "quadrant-map"}.png`;
     link.href = canvas.toDataURL("image/png");
@@ -350,7 +339,7 @@ export default function Home() {
   };
 
   const resetDemo = () => {
-    if (window.confirm("Replace this map with the starter example?")) {
+    if (window.confirm("Replace this map with the example map?")) {
       setMap(DEMO_STATE);
       setSelectedId(null);
     }
@@ -366,7 +355,7 @@ export default function Home() {
   return (
     <main className={`app-shell font-${map.fontPack}`}>
       <header className="topbar">
-        <a className="brand" href="#canvas" aria-label="Quadrants home">quadrants<span>.</span></a>
+        <a className="brand" href="#canvas" aria-label="Byaxis home">byaxis<span>.</span></a>
         <div className="save-status" aria-live="polite"><i className={saved ? "saved" : "saving"} />{saved ? "Saved on this device" : "Saving…"}</div>
         <div className="top-actions">
           <button className="button secondary" onClick={openItemModal}><span>＋</span> Add item</button>
@@ -402,7 +391,7 @@ export default function Home() {
 
           <section>
             <p className="eyebrow">Quadrants</p>
-            <div className="field-grid quadrants-fields">
+            <div className="field-grid quadrant-fields">
               {map.quadrants.map((label, index) => (
                 <label key={index}>Q{index + 1}<input value={label} onChange={(event) => {
                   const quadrants = [...map.quadrants] as MapState["quadrants"];
@@ -491,7 +480,7 @@ export default function Home() {
               {!map.items.length && <button className="empty-state" onClick={(event) => { event.stopPropagation(); openItemModal(); }}><span>＋</span><strong>Add your first item</strong><small>Use a color or your own image</small></button>}
             </div>
           </div>
-          <footer><span>quadrants.io</span><span>{map.items.length} item{map.items.length === 1 ? "" : "s"} · stored locally</span></footer>
+          <footer><span>byaxis</span><span>{map.items.length} item{map.items.length === 1 ? "" : "s"} · stored locally</span></footer>
         </section>
       </div>
 
