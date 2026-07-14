@@ -11,6 +11,7 @@ type Item = {
   src?: string;
   color: string;
   initials: string;
+  z: number;
 };
 
 type MapState = {
@@ -21,10 +22,21 @@ type MapState = {
   yTop: string;
   yBottom: string;
   quadrants: [string, string, string, string];
+  fontPack: string;
   items: Item[];
 };
 
 const COLORS = ["#F06449", "#3E63DD", "#B6D63A", "#F2C94C", "#9B6BD3", "#2D9C7A"];
+const FONT_PACKS = [
+  { id: "modernist", label: "Modernist", detail: "Space Grotesk + Inter" },
+  { id: "editorial", label: "Editorial", detail: "Source Serif 4 + DM Sans" },
+  { id: "friendly", label: "Friendly", detail: "Manrope + Nunito Sans" },
+  { id: "technical", label: "Technical", detail: "IBM Plex Sans + IBM Plex Mono" },
+];
+
+const normalizeLayers = (items: Item[]) => [...items]
+  .sort((a, b) => (a.z ?? 0) - (b.z ?? 0))
+  .map((item, index) => ({ ...item, z: index + 1 }));
 
 const DEMO_STATE: MapState = {
   title: "The AI landscape",
@@ -34,12 +46,13 @@ const DEMO_STATE: MapState = {
   yTop: "Opinionated",
   yBottom: "Flexible",
   quadrants: ["Cult favorites", "Category leaders", "Specialists", "Platforms"],
+  fontPack: "modernist",
   items: [
-    { id: "demo-1", x: 22, y: 24, size: 72, label: "Northstar", color: COLORS[0], initials: "N" },
-    { id: "demo-2", x: 66, y: 20, size: 80, label: "Arc", color: COLORS[1], initials: "A" },
-    { id: "demo-3", x: 79, y: 43, size: 68, label: "Bloom", color: COLORS[2], initials: "B" },
-    { id: "demo-4", x: 35, y: 62, size: 76, label: "Relay", color: COLORS[3], initials: "R" },
-    { id: "demo-5", x: 59, y: 76, size: 70, label: "Mosaic", color: COLORS[4], initials: "M" },
+    { id: "demo-1", x: 22, y: 24, size: 72, label: "Northstar", color: COLORS[0], initials: "N", z: 1 },
+    { id: "demo-2", x: 66, y: 20, size: 80, label: "Arc", color: COLORS[1], initials: "A", z: 2 },
+    { id: "demo-3", x: 79, y: 43, size: 68, label: "Bloom", color: COLORS[2], initials: "B", z: 3 },
+    { id: "demo-4", x: 35, y: 62, size: 76, label: "Relay", color: COLORS[3], initials: "R", z: 4 },
+    { id: "demo-5", x: 59, y: 76, size: 70, label: "Mosaic", color: COLORS[4], initials: "M", z: 5 },
   ],
 };
 
@@ -60,7 +73,13 @@ async function readState(): Promise<MapState | null> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readonly");
     const request = tx.objectStore(STORE_NAME).get("current");
-    request.onsuccess = () => resolve((request.result as MapState) ?? null);
+    request.onsuccess = () => {
+      const stored = request.result as Partial<MapState> | undefined;
+      if (!stored) return resolve(null);
+      const items = normalizeLayers((stored.items ?? DEMO_STATE.items).map((item, index) => ({ ...item, z: item.z ?? index + 1 })));
+      const fontPack = FONT_PACKS.some((pack) => pack.id === stored.fontPack) ? stored.fontPack! : DEMO_STATE.fontPack;
+      resolve({ ...DEMO_STATE, ...stored, items, fontPack });
+    };
     request.onerror = () => reject(request.error);
     tx.oncomplete = () => db.close();
   });
@@ -121,6 +140,8 @@ export default function Home() {
   }, [map, ready]);
 
   const selected = useMemo(() => map.items.find((item) => item.id === selectedId) ?? null, [map.items, selectedId]);
+  const layeredItems = useMemo(() => [...map.items].sort((a, b) => b.z - a.z), [map.items]);
+  const activeFontPack = FONT_PACKS.find((pack) => pack.id === map.fontPack) ?? FONT_PACKS[0];
 
   const patchMap = <K extends keyof MapState>(key: K, value: MapState[K]) => setMap((current) => ({ ...current, [key]: value }));
 
@@ -131,8 +152,21 @@ export default function Home() {
     }));
   }, []);
 
+  const setLayerPosition = useCallback((id: string, requestedPosition: number) => {
+    setMap((current) => {
+      const ordered = [...current.items].sort((a, b) => a.z - b.z);
+      const currentIndex = ordered.findIndex((item) => item.id === id);
+      if (currentIndex < 0) return current;
+      const [moving] = ordered.splice(currentIndex, 1);
+      const targetIndex = Math.max(0, Math.min(ordered.length, requestedPosition - 1));
+      ordered.splice(targetIndex, 0, moving);
+      return { ...current, items: ordered.map((item, index) => ({ ...item, z: index + 1 })) };
+    });
+  }, []);
+
   const addFiles = async (incoming: File[]) => {
     const files = incoming.filter((file) => file.type.startsWith("image/"));
+    const topLayer = Math.max(0, ...map.items.map((item) => item.z));
     const additions = await Promise.all(files.map(async (file, index): Promise<Item> => {
       const label = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
       return {
@@ -144,6 +178,7 @@ export default function Home() {
         src: await fileToDataUrl(file),
         color: COLORS[(map.items.length + index) % COLORS.length],
         initials: label.slice(0, 2).toUpperCase(),
+        z: topLayer + index + 1,
       };
     }));
     if (additions.length) {
@@ -177,7 +212,7 @@ export default function Home() {
 
   const removeSelected = () => {
     if (!selectedId) return;
-    setMap((current) => ({ ...current, items: current.items.filter((item) => item.id !== selectedId) }));
+    setMap((current) => ({ ...current, items: normalizeLayers(current.items.filter((item) => item.id !== selectedId)) }));
     setSelectedId(null);
   };
 
@@ -195,24 +230,29 @@ export default function Home() {
     }
     if (event.key === "Backspace" || event.key === "Delete") {
       event.preventDefault();
-      setMap((current) => ({ ...current, items: current.items.filter((candidate) => candidate.id !== item.id) }));
+      setMap((current) => ({ ...current, items: normalizeLayers(current.items.filter((candidate) => candidate.id !== item.id)) }));
       setSelectedId(null);
     }
   };
 
   const exportPng = async () => {
+    await document.fonts.ready;
     const canvas = document.createElement("canvas");
     canvas.width = 1600;
     canvas.height = 1200;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const heading = document.querySelector<HTMLElement>(".canvas-heading h1");
+    const canvasArea = document.querySelector<HTMLElement>(".canvas-area");
+    const displayFont = heading ? getComputedStyle(heading).fontFamily : "Arial, sans-serif";
+    const bodyFont = canvasArea ? getComputedStyle(canvasArea).fontFamily : "Arial, sans-serif";
     ctx.fillStyle = "#F4F0E8";
     ctx.fillRect(0, 0, 1600, 1200);
     ctx.fillStyle = "#171713";
-    ctx.font = "700 66px Arial, sans-serif";
+    ctx.font = `700 66px ${displayFont}`;
     ctx.fillText(map.title, 104, 110);
     ctx.globalAlpha = 0.58;
-    ctx.font = "24px Arial, sans-serif";
+    ctx.font = `24px ${bodyFont}`;
     ctx.fillText(map.subtitle, 106, 152);
     ctx.globalAlpha = 1;
     const left = 190, top = 235, width = 1220, height = 820;
@@ -222,12 +262,12 @@ export default function Home() {
     ctx.beginPath(); ctx.moveTo(left + width / 2, top); ctx.lineTo(left + width / 2, top + height); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(left, top + height / 2); ctx.lineTo(left + width, top + height / 2); ctx.stroke();
     ctx.fillStyle = "rgba(23,23,19,.5)";
-    ctx.font = "700 19px Arial, sans-serif";
+    ctx.font = `700 19px ${bodyFont}`;
     ctx.fillText(map.quadrants[0].toUpperCase(), left + 24, top + 38);
     ctx.fillText(map.quadrants[1].toUpperCase(), left + width / 2 + 24, top + 38);
     ctx.fillText(map.quadrants[2].toUpperCase(), left + 24, top + height / 2 + 38);
     ctx.fillText(map.quadrants[3].toUpperCase(), left + width / 2 + 24, top + height / 2 + 38);
-    ctx.font = "20px Arial, sans-serif";
+    ctx.font = `20px ${bodyFont}`;
     ctx.fillText(map.yTop, left - 2, top - 22);
     ctx.fillText(map.yBottom, left - 2, top + height + 44);
     ctx.textAlign = "right";
@@ -235,7 +275,7 @@ export default function Home() {
     ctx.textAlign = "left";
     ctx.fillText(map.xLeft, left, top + height + 44);
 
-    await Promise.all(map.items.map(async (item) => {
+    for (const item of [...map.items].sort((a, b) => a.z - b.z)) {
       const cx = left + (item.x / 100) * width;
       const cy = top + (item.y / 100) * height;
       const size = item.size * 1.35;
@@ -256,19 +296,19 @@ export default function Home() {
         ctx.fillStyle = "#171713";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.font = `800 ${size * .36}px Arial, sans-serif`;
+        ctx.font = `800 ${size * .36}px ${displayFont}`;
         ctx.fillText(item.initials, cx, cy + 2);
       }
       ctx.restore();
       ctx.fillStyle = "#171713";
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.font = "700 19px Arial, sans-serif";
+      ctx.font = `700 19px ${bodyFont}`;
       ctx.fillText(item.label, cx, cy + size / 2 + 27);
-    }));
+    }
     ctx.fillStyle = "rgba(23,23,19,.45)";
     ctx.textAlign = "right";
-    ctx.font = "700 18px Arial, sans-serif";
+    ctx.font = `700 18px ${bodyFont}`;
     ctx.fillText("quadrants.io", 1496, 1150);
     const link = document.createElement("a");
     link.download = `${map.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "quadrant-map"}.png`;
@@ -291,7 +331,7 @@ export default function Home() {
   };
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell font-${map.fontPack}`}>
       <header className="topbar">
         <a className="brand" href="#canvas" aria-label="Quadrants home">quadrants<span>.</span></a>
         <div className="save-status" aria-live="polite"><i className={saved ? "saved" : "saving"} />{saved ? "Saved on this device" : "Saving…"}</div>
@@ -310,6 +350,12 @@ export default function Home() {
             <p className="eyebrow">Map details</p>
             <label>Title<input value={map.title} onChange={(event) => patchMap("title", event.target.value)} /></label>
             <label>Subtitle<input value={map.subtitle} onChange={(event) => patchMap("subtitle", event.target.value)} /></label>
+            <label>Font package
+              <select value={map.fontPack} onChange={(event) => patchMap("fontPack", event.target.value)}>
+                {FONT_PACKS.map((pack) => <option value={pack.id} key={pack.id}>{pack.label} — {pack.detail}</option>)}
+              </select>
+            </label>
+            <div className="font-sample" aria-label={`${activeFontPack.label} font preview`}><b>Aa</b><span>{activeFontPack.detail}</span></div>
           </section>
 
           <section>
@@ -340,8 +386,34 @@ export default function Home() {
             {selected ? <>
               <label>Label<input value={selected.label} onChange={(event) => patchItem(selected.id, { label: event.target.value })} /></label>
               <label>Size <output>{selected.size}px</output><input className="range" type="range" min="48" max="128" value={selected.size} onChange={(event) => patchItem(selected.id, { size: Number(event.target.value) })} /></label>
+              <label>Layer
+                <select value={selected.z} onChange={(event) => setLayerPosition(selected.id, Number(event.target.value))}>
+                  {map.items.map((_, index) => <option value={index + 1} key={index}>{index + 1}{index === 0 ? " · Back" : index === map.items.length - 1 ? " · Front" : ""}</option>)}
+                </select>
+              </label>
+              <div className="layer-controls" aria-label="Move selected item between layers">
+                <button onClick={() => setLayerPosition(selected.id, 1)} title="Send to back">⇤</button>
+                <button onClick={() => setLayerPosition(selected.id, selected.z - 1)} title="Move backward">←</button>
+                <button onClick={() => setLayerPosition(selected.id, selected.z + 1)} title="Move forward">→</button>
+                <button onClick={() => setLayerPosition(selected.id, map.items.length)} title="Bring to front">⇥</button>
+              </div>
               <button className="text-button danger" onClick={removeSelected}>Remove item</button>
             </> : <p className="hint">Select an image on the map to edit it.</p>}
+          </section>
+
+          <section>
+            <p className="eyebrow">Layers <span>Front to back</span></p>
+            <div className="layers-list">
+              {layeredItems.map((item) => (
+                <button className={`layer-row ${item.id === selectedId ? "selected" : ""}`} key={item.id} onClick={() => setSelectedId(item.id)}>
+                  <span className="layer-thumb" style={{ background: item.color }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {item.src ? <img src={item.src} alt="" /> : item.initials}
+                  </span>
+                  <span>{item.label}</span><small>{item.z}</small>
+                </button>
+              ))}
+            </div>
           </section>
 
           <div className="sidebar-bottom">
@@ -373,7 +445,7 @@ export default function Home() {
                 <button
                   className={`map-item ${selectedId === item.id ? "selected" : ""}`}
                   key={item.id}
-                  style={{ left: `${item.x}%`, top: `${item.y}%`, width: item.size, height: item.size }}
+                  style={{ left: `${item.x}%`, top: `${item.y}%`, width: item.size, height: item.size, zIndex: item.z }}
                   onPointerDown={(event) => pointerDown(event, item)}
                   onPointerMove={pointerMove}
                   onPointerUp={() => { dragRef.current = null; }}

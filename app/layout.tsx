@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans, Geist, Geist_Mono, IBM_Plex_Mono, IBM_Plex_Sans, Inter, Manrope, Nunito_Sans, Source_Serif_4, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
+const spaceGrotesk = Space_Grotesk({ variable: "--font-space-grotesk", subsets: ["latin"] });
+const dmSans = DM_Sans({ variable: "--font-dm-sans", subsets: ["latin"] });
+const sourceSerif = Source_Serif_4({ variable: "--font-source-serif", subsets: ["latin"] });
+const manrope = Manrope({ variable: "--font-manrope", subsets: ["latin"] });
+const nunitoSans = Nunito_Sans({ variable: "--font-nunito-sans", subsets: ["latin"] });
+const ibmPlexSans = IBM_Plex_Sans({ variable: "--font-ibm-plex-sans", subsets: ["latin"], weight: ["400", "600", "700"] });
+const ibmPlexMono = IBM_Plex_Mono({ variable: "--font-ibm-plex-mono", subsets: ["latin"], weight: ["400", "600", "700"] });
+const fontVariables = [geistSans, geistMono, inter, spaceGrotesk, dmSans, sourceSerif, manrope, nunitoSans, ibmPlexSans, ibmPlexMono].map((font) => font.variable).join(" ");
 
 export const metadata: Metadata = {
   title: "Quadrants — Map ideas visually",
@@ -20,5 +29,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body className={`${geistSans.variable} ${geistMono.variable}`}>{children}</body></html>;
+  return <html lang="en"><body className={fontVariables}>{children}</body></html>;
 }
