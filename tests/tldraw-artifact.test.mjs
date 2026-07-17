@@ -20,13 +20,17 @@ test("ships a non-empty native tldraw artifact", async () => {
 });
 
 test("embeds the local image-item UI", async () => {
-  const [{ stdout: configScript }, { stdout: mainScript }] = await Promise.all([
+  const [{ stdout: configScript }, { stdout: mainScript }, { stdout: sidebarScript }] = await Promise.all([
     execFileAsync("unzip", ["-p", artifactPath, "script/config.js"]),
     execFileAsync("unzip", ["-p", artifactPath, "script/main.js"]),
+    execFileAsync("unzip", ["-p", artifactPath, "script/sidebar.js"]),
   ]);
 
-  assert.match(configScript, /\+ Add item/);
-  assert.match(configScript, /type: "files"/);
-  assert.match(configScript, /accept: "image\/\*"/);
-  assert.match(mainScript, /selectedItem\?\.meta\?\.byaxisName/);
+  assert.match(configScript, /ByaxisSidebar/);
+  assert.match(sidebarScript, /\+ Add item/);
+  assert.match(sidebarScript, /type: "files"/);
+  assert.match(sidebarScript, /accept: "image\/\*"/);
+  assert.match(sidebarScript, /Move backward/);
+  assert.match(sidebarScript, /getSortedChildIdsForParent/);
+  assert.doesNotMatch(mainScript, /geo\("control-panel"/);
 });

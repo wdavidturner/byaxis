@@ -17,9 +17,10 @@ The document contains the canvas, example data, and its interaction script. It d
 - Editable 2×2 quadrant board and labels made from standard tldraw shapes.
 - Six draggable color-backed example items.
 - Intentional Atlas/Arc overlap to exercise stacking behavior.
-- In-canvas item picker for selecting through overlaps.
-- Durable controls for bringing the selected item to the front or moving it backward.
-- Compact add-item form with a name field, image picker, drag-and-drop, and preview.
+- Fixed left sidebar generated from the full live item list, including image thumbnails and layer numbers.
+- Sidebar rows that select and highlight the matching canvas item, including items added later.
+- Durable controls for bringing the selected item to the front or moving it backward one item layer.
+- Expandable sidebar form with a name field, image picker, drag-and-drop, and preview.
 - Uploaded images embedded directly in the `.tldraw` document and grouped with their visible labels.
 - Embedded document script that survives save and reopen.
 
