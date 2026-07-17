@@ -42,6 +42,15 @@ npm test
 - `lib/layers.js` — deterministic item layer normalization and reordering.
 - `tests/` — rendered-app and layer-behavior tests.
 - `BLUEPRINT.md` — a copyable prompt for building and adapting a similar tool.
+- `tldraw/byaxis.tldraw` — an experimental self-contained edition for tldraw Offline.
+
+## tldraw Offline edition
+
+![Byaxis running inside tldraw Offline](tldraw/preview.jpg)
+
+The repository includes an early, working [tldraw Offline edition](tldraw/README.md). Open `tldraw/byaxis.tldraw` in the free tldraw Offline desktop app to explore an editable quadrant board with embedded local controls for selecting overlapping items and changing their layer order.
+
+The interaction code is stored inside the `.tldraw` document and runs locally. As with any scriptable document, inspect or trust the source before opening copies from people you do not trust.
 
 ## Privacy model
 
