@@ -19,9 +19,11 @@ The document contains the canvas, example data, and its interaction script. It d
 - Intentional Atlas/Arc overlap to exercise stacking behavior.
 - In-canvas item picker for selecting through overlaps.
 - Durable controls for bringing the selected item to the front or moving it backward.
+- Compact add-item form with a name field, image picker, drag-and-drop, and preview.
+- Uploaded images embedded directly in the `.tldraw` document and grouped with their visible labels.
 - Embedded document script that survives save and reopen.
 
-This is the first useful milestone, not feature parity with the browser app. Local image items, richer editing controls, and export behavior are still future work.
+New image items are selected as soon as they are created and work with the same layer controls as the included examples. Richer editing controls and export behavior are still future work.
 
 ## Security and privacy
 
