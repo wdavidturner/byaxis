@@ -37,6 +37,8 @@ test("embeds the local image-item UI", async () => {
   assert.match(sidebarScript, /COLOR_OPTIONS/);
   assert.match(sidebarScript, /Delete item/);
   assert.match(configScript, /StylePanel/);
+  assert.match(configScript, /DefaultStylePanel/);
+  assert.match(configScript, /config\.components\.StylePanel \?\? DefaultStylePanel/);
   assert.match(configScript, /if \(selectedItemId\) return null/);
   assert.doesNotMatch(mainScript, /geo\("control-panel"/);
 });

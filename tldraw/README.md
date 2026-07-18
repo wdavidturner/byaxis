@@ -21,6 +21,7 @@ The document contains the canvas, example data, and its interaction script. It d
 - Sidebar rows that select and highlight the matching canvas item, including items added later.
 - Live names sourced from the visible canvas labels, so direct text edits immediately update the sidebar.
 - Selected-item controls for renaming, changing shape and color, reordering, and deleting without using the native right style panel.
+- The native tldraw style panel remains available for drawing and editing every non-item canvas shape.
 - Durable controls for bringing the selected item to the front or moving it backward one item layer.
 - Expandable sidebar form with a name field, image picker, drag-and-drop, and preview.
 - Uploaded images embedded directly in the `.tldraw` document and grouped with their visible labels.
