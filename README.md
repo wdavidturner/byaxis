@@ -48,7 +48,7 @@ npm test
 
 ![Byaxis running inside tldraw Offline](tldraw/preview.jpg)
 
-The repository includes an early, working [tldraw Offline edition](tldraw/README.md). Open `tldraw/byaxis.tldraw` in the free tldraw Offline desktop app to explore an editable quadrant board with a fixed local sidebar for adding named image items, selecting anything on the canvas, and changing layer order.
+The repository includes an early, working [tldraw Offline edition](tldraw/README.md). Open `tldraw/byaxis.tldraw` in the free tldraw Offline desktop app to explore an editable quadrant board with a fixed local sidebar for adding and selecting items, keeping sidebar names in sync with canvas labels, changing item shapes and colors, and controlling layer order.
 
 The interaction code is stored inside the `.tldraw` document and runs locally. As with any scriptable document, inspect or trust the source before opening copies from people you do not trust.
 

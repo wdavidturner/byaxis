@@ -32,5 +32,11 @@ test("embeds the local image-item UI", async () => {
   assert.match(sidebarScript, /accept: "image\/\*"/);
   assert.match(sidebarScript, /Move backward/);
   assert.match(sidebarScript, /getSortedChildIdsForParent/);
+  assert.match(sidebarScript, /renderPlaintextFromRichText/);
+  assert.match(sidebarScript, /SHAPE_OPTIONS/);
+  assert.match(sidebarScript, /COLOR_OPTIONS/);
+  assert.match(sidebarScript, /Delete item/);
+  assert.match(configScript, /StylePanel/);
+  assert.match(configScript, /if \(selectedItemId\) return null/);
   assert.doesNotMatch(mainScript, /geo\("control-panel"/);
 });
